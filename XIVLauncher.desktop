@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=XIVLauncher.Core (Local)
+Comment=Custom launcher for Final Fantasy XIV. Local install.
+Exec=
+Icon=
+Terminal=false
+Type=Application
+Categories=Game;
+StartupWMClass=XIVLauncher.Core
