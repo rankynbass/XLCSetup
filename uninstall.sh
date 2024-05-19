@@ -3,7 +3,7 @@ if [ -z "$XDG_DATA_HOME" ]; then
     XDG_DATA_HOME="$HOME/.local/share"
 fi
 scriptdir="$(realpath "$(dirname "$0")")"
-xldir="$XDG_DATA_HOME/xivlauncher-core"
+xldir="$XDG_DATA_HOME/xivlauncher-local"
 
 echo "Removing XIVLauncher.Core local directory at $xldir"
 rm -rf "$xldir"
