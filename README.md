@@ -2,7 +2,7 @@
 A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a local install of steam, lutris, or even just wine, the dependencies should be met.
 
 ## How to use
-Download the source code from the latest release and extract. Alternately, `git clone` the repo.
+Download XIVLocal-Installer.tar.gz from the latest release and extract. Alternately, `git clone` the repo.
 
 From the terminal, cd into the created directory, and then launch the install script with `./install.sh`.
 
@@ -15,9 +15,9 @@ flatpak run --command=bash com.valvsoftware.Steam
 ```
 and then do
 ```
-curl -L https://github.com/rankynbass/XIVLocal/archive/refs/tags/v0.1.tar.gz -o xivlocal.tar.gz
-tar -xf xivlocal.tar.gz
-cd `XIVLocal-0.1`
+curl -L https://github.com/rankynbass/XIVLocal/releases/latest/download/XIVLocal-Installer.tar.gz -o XIVLocal-Installer.tar.gz
+tar -xf XIVLocal-Installer.tar.gz
+cd `XIVLocal-Installer`
 ./install.sh
 ```
 
