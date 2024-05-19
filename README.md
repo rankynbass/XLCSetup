@@ -1,5 +1,5 @@
 # XIVLauncher.Core local installer
-A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a local install of steam, lutris, or even just wine, the dependencies should be met.
+A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a native (non-flatpak) install of steam, lutris, or even just wine, the dependencies should be met.
 
 ## How to use
 Download XIVLocal-Installer.tar.gz from the latest release and extract. Alternately, `git clone` the repo.
