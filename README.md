@@ -1,7 +1,29 @@
 # XIVLauncher.Core local installer
-A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a local install of steam, all dependencies should be met.
+A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a local install of steam, lutris, or even just wine, the dependencies should be met.
 
-What this script does:
+## How to use
+Download the source code from the latest release and extract. Alternately, `git clone` the repo.
+
+From the terminal, cd into the created directory, and then launch the install script with `./install.sh`.
+
+That's it. You're done! You should now have a desktop entry for "XIVLauncher.Core (local)", which can be added to steam.
+
+## How to add to flatpak steam
+This is a little trickier, but still entirely doable. You can enter the flatpak environment with
+```
+flatpak run --command=bash com.valvsoftware.Steam
+```
+and then do
+```
+curl -L https://github.com/rankynbass/XIVLocal/archive/refs/tags/v0.1.tar.gz -o xivlocal.tar.gz
+tar -xf xivlocal.tar.gz
+cd `XIVLocal-0.1`
+./install.sh
+```
+
+Then you can launch Steam, add a non-steam game, Browse, change the filter to All Files, and browse to `~/.var/app/com.valvesoftware.Steam/.local/applications`. Then select `xivlauncher-local.desktop`. Secret service doesn't work at the moment, so you'll have to add `XL_SECRET_PROVIDER=FILE %command%` to the launch arguments to save your password.
+
+## What this script does:
 
 1. Create a new directory at `$XDG_DATA_HOME/xivlauncher-local`. This is usually `~/.local/share/xivlauncher-local`, but if you're running this inside a flatpak, it could be different.
 2. Extract aria2-static.tar.gz. This is a statically built copy of aria2 (built in debian12, but since it's statically linked, that doesn't really matter).
