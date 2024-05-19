@@ -4,9 +4,11 @@ A quick and dirty script to install (or uninstall) XIVLauncher locally without f
 ## How to use
 Download XIVLocal-Installer.tar.gz from the latest release and extract. Alternately, `git clone` the repo.
 
-From the terminal, cd into the created directory, and then launch the install script with `./install.sh`.
+From the terminal, cd into the created directory, and then launch the install script with `./install.sh` to install the official XIVLauncher.Core, or `USE_RB=1 ./install.sh` if you want to install the latest XIVLauncher-RB instead.
 
-That's it. You're done! You should now have a desktop entry for "XIVLauncher.Core (local)", which can be added to steam.
+That's it. You're done! You should now have a desktop entry for "XIVLauncher.Core (local)" or "XIVLauncher-RB (local)", which can be added to steam.
+
+You can uninstall with `./uninstall.sh` for XIVLauncher.Core or `USE_RB=1 ./uninstall.sh` for XIVLauncher-RB.
 
 ## How to add to flatpak steam
 This is a little trickier, but still entirely doable. You can enter the flatpak environment with
