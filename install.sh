@@ -21,7 +21,9 @@ echo "https://github.com/$repo/XIVLauncher.Core/releases/latest/download/XIVLaun
 
 mkdir -p "$xldir"
 
-tar -xf "$scriptdir/aria2-static.tar.gz" -C "$xldir"
+echo "Downloading static aria2 build..."
+curl -L "https://github.com/rankynbass/aria2-static-build/releases/latest/download/aria2-static.tar.gz" -o /tmp/aria2-static.tar.gz
+tar -xf /tmp/aria2-static.tar.gz -C "$xldir"
 
 echo "Downloading latest XIVLauncher.Core..."
 curl -L "https://github.com/$repo/XIVLauncher.Core/releases/latest/download/XIVLauncher.Core.tar.gz" -o /tmp/XIVLauncher.Core.tar.gz
@@ -39,6 +41,10 @@ cp "$scriptdir/openssl_fix.cnf" "$xldir/openssl_fix.cnf"
 
 cp "$scriptdir/xivlauncher.png" "$xldir/xivlauncher.png"
 
+cp "$scriptdir/COPYING.GPL2" "$xldir/COPYING.GPL2"
+
+cp "$scriptdir/COPYING.GPL3" "$xldir/COPYING.GPL3"
+
 echo "Making desktop file entry"
 mkdir -p "$XDG_DATA_HOME/applications"
 cp "$scriptdir/XIVLauncher.desktop" "$XDG_DATA_HOME/applications/$name.desktop"
@@ -49,4 +55,4 @@ sed -i "s|Icon=|Icon=$xldir/xivlauncher.png|" "$XDG_DATA_HOME/applications/$name
 echo "Trying to update desktop menu..."
 xdg-desktop-menu forceupdate
 
-echo "Installation complete. You may need to update your \$PATH variable to include \$HOME//.local/bin if you want to launch from the terminal with \"xivlauncher-local\"."
+echo "Installation complete. You may need to update your \$PATH variable to include \$HOME/.local/bin if you want to launch from the terminal with \"xivlauncher-local\"."
