@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/bin/env bash
 # Set the release type (Official or RB)
 release=RELEASE
 updateurl=UPDATEURL

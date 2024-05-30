@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Unset these env vars that will be used locally
 unset XIV_HELPTEXT
