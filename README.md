@@ -33,6 +33,7 @@ Local install script for XIVLauncher.Core.
 2. Copy the necessary files from the `resources` folder to the steam compatibility tool directory
 3. After restarting steam, you can right-click on Final Fantasy XIV, go to settings, Compatibility, and select "XIVLauncher as Compatibility Tool".
 4. Now when you launch FFXIV from steam, it will use XIVLauncher.Core instead. This solves the issues with running flatpaks under steam.
+5. This is self-updating! It will do a quick version check, and if it detects a newer version it will download and install it. You can test this yourself by going into the `~/.local/share/Steam/compatibilitytools.d/xlcore` folder and editing the version file to 1.0.7.0. It will then download again the next time you launch. You'll have to wait a couple of minutes before downloading and check timestamps to see it, but it does work.
 
 ## Licensing
 This install script will download a pre-compiled static copy of aria2 that does not depend on any system libraries. Aria2 is GPL v2 software. The source code can be found at [[this link](https://github.com/aria2/aria2)]. A copy of the license can be found in the repo as COPYING.GPL2 or [[online](https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt)].
