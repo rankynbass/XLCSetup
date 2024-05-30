@@ -94,12 +94,12 @@ fi
 if [ "$XIV_USE_RB" = "1" ]; then
     repo="rankynbass"
     name="xivlauncher-rb-local"
-    title="XIVLauncher-RB"
+    title="RB-Patched"
     versioncheck="https://raw.githubusercontent.com/rankynbass/XIVLauncher.Core/RB-patched/version.txt"
 else
     repo="goatcorp"
     name="xivlauncher-local"
-    title="XIVLauncher.Core"
+    title="Official"
     versioncheck="https://raw.githubusercontent.com/goatcorp/xlcore-distrib/main/version.txt"
 fi
 
@@ -127,11 +127,11 @@ VersionCheck() {
     fi
     echo "Checking for latest version..."
     latest=$(curl -L "$versioncheck")
-    echo "Latest version of $title is $latest"
+    echo "Latest version of XIVLauncher.Core $title is $latest"
     echo "Checking cache..."
     if [ -f "$tempdir/version-$repo" ]; then
         current=$(awk 'NR==1 {print; exit}' < "$tempdir/version-$repo")
-        echo "Cached version of $title is $current"
+        echo "Cached version of XIVLauncher.Core $title is $current"
         testcurrent=$( VersionToNumber $current )
         testlatest=$( VersionToNumber $latest )
         if [ $testlatest -gt $testcurrent ]; then
@@ -151,7 +151,7 @@ VersionCheck() {
 }
 
 Download() {
-    echo "Downloading latest $title..."
+    echo "Downloading latest XIVLauncher.Core $title..."
     curl -L "https://github.com/$repo/XIVLauncher.Core/releases/latest/download/XIVLauncher.Core.tar.gz" -o "$tempdir/$title.tar.gz"
 }
 
@@ -167,7 +167,7 @@ DownloadAria2() {
 InstallLocal() {
     if [ -e "$xldir/version" ]; then
         installed=$(awk 'NR==1 {print; exit}' < "$xldir/version")
-        echo "Local installed version is $title $installed"
+        echo "Local installed version is XIVLauncher.Core $title $installed"
         testinstalled=$( VersionToNumber $installed )
         if [ $testcurrent -le $testinstalled ] && [ "$XIV_FORCE" != "1" ]; then
             echo "Current installed version is up-to-date. Exiting."
@@ -209,7 +209,7 @@ InstallLocal() {
 }
 
 UninstallLocal() {
-    echo "Removing $title local directory at $xldir"
+    echo "Removing XIVLauncher.Core $title local directory at $xldir"
     rm -rf "$xldir"
     echo "Removing terminal launcher script from $HOME/.local/bin/$name"
     rm "$HOME/.local/bin/$name"
@@ -218,7 +218,7 @@ UninstallLocal() {
     echo "Trying to update desktop menu..."
     xdg-desktop-menu forceupdate
 
-echo "$title local install removed."
+echo "XIVLauncher.Core $title local install removed."
 }
 
 InstallSteamTool() {
@@ -231,7 +231,7 @@ InstallSteamTool() {
             release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
             echo "Flatpak Steam Compatiblity Tool version is $release $installed"
             if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
-                echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
+                echo "There is already a version of XIVLauncher.Core $release installed. If you want to replace it with XIVLauncher.Core $title, use --force."
                 return
             fi
             testinstalled=$( VersionToNumber $installed )
@@ -254,6 +254,7 @@ InstallSteamTool() {
     mv "$steamdir/XIVLauncher/xlcore" "$steamdir"
     mv "$steamdir/XIVLauncher/toolmanifest.vdf" "$steamdir"
     mv "$steamdir/XIVLauncher/compatibilitytool.vdf" "$steamdir"
+    mv "$steamdir/XIVLauncher/openssl_fix.cnf" "$steamdir"
     if [ "$XIV_TEST" = "1" ]; then
         rm "$steamdir/XIVLauncher/update"
         mv "$steamdir/XIVLauncher/update-test" "$steamdir/update"
@@ -287,7 +288,7 @@ InstallSteamFPTool() {
             release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
             echo "Flatpak Steam Compatiblity Tool version is $release $installed"
             if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
-                echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
+                echo "There is already a version of XIVLauncher.Core $release installed. If you want to replace it with XIVLauncher.Core $title, use --force."
                 return
             fi
             testinstalled=$( VersionToNumber $installed )
@@ -309,6 +310,7 @@ InstallSteamFPTool() {
     mv "$steamdir/XIVLauncher/xlcore" "$steamdir"
     mv "$steamdir/XIVLauncher/toolmanifest.vdf" "$steamdir"
     mv "$steamdir/XIVLauncher/compatibilitytool.vdf" "$steamdir"
+    mv "$steamdir/XIVLauncher/openssl_fix.cnf" "$steamdir"
     if [ "$XIV_TEST" = "1" ]; then
         rm "$steamdir/XIVLauncher/update"
         mv "$steamdir/XIVLauncher/update-test" "$steamdir/update"

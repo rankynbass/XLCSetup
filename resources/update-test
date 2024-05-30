@@ -42,13 +42,13 @@ Download() {
     cp -r LOCALREPO "$tempdir/XIVLocal-Installer"
 
     if [ "$flatpak" = "0" ]; then
-        if [ "$release" = "XIVLauncher-RB" ]; then
+        if [ "$release" = "RB-Patched" ]; then
             args="--steam --force --RB --test"
         else
             args="--steam --force --test"
         fi
     else
-        if [ "$release" = "XIVLauncher-RB" ]; then
+        if [ "$release" = "RB-Patched" ]; then
             args="--steamflatpak --force --RB --test"
         else
             args="--steamflatpak --force --test"
