@@ -85,7 +85,7 @@ Download() {
 
     rm -rf "$tooldir/tmp"
 
-    xdg-open "$tooldir/XIVLauncher/updated.txt"
+    xdg-open "$tooldir/XIVLauncher/updated.txt" &
 }
 
 VersionCheck

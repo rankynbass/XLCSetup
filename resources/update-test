@@ -57,7 +57,7 @@ Download() {
 
     "$tempdir/XIVLocal-Installer/install.sh" $args
 
-    xdg-open "$tooldir/XIVLauncher/updated.txt"
+    xdg-open "$tooldir/XIVLauncher/updated.txt" &
 }
 
 VersionCheck
