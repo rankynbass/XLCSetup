@@ -51,6 +51,7 @@ VersionCheck() {
             fi
         else
             echo "Unknown version. Forcing download of $release $latest"
+        fi
     else
         echo "Unknown version. Forcing download of $release $latest"
         current="$latest"
