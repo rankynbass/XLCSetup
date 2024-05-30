@@ -8,9 +8,13 @@ tooldir="$(realpath "$(dirname "$0")")"
 
 # Prevent double launch
 if [ "$1" = "run" ]; then
-    "$tooldir/update"
+    updated=$("$tooldir/update")
     sleep 1
-    exit 0
+    if [ "updated" = "UPDATED" ]; then
+        exit 1
+    else
+        exit 0
+    fi
 fi
 
 xlcoreDir="$HOME/.xlcore"

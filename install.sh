@@ -9,6 +9,9 @@ unset XIV_STEAM
 unset XIV_STEAMFP
 unset XIV_BADOPTION
 unset XIV_FORCE
+unset XIV_CLEARCACHE
+unset XIV_DOWNLOAD
+unset XIV_TEST
 
 # Loop through the launch arguments
 for i in "$@"; do
@@ -51,6 +54,22 @@ for i in "$@"; do
         -h)
             XIV_HELPTEXT=1
             ;;
+
+        --cc)
+            XIV_CLEARCACHE=1
+            ;;
+
+        --download)
+            XIV_DOWNLOAD=1
+            ;;
+
+        -d)
+            XIV_DOWNLOAD=1
+            ;;
+
+        --test)
+            XIV_TEST=1
+            ;;
         
         *)
             XIV_HELPTEXT=1
@@ -68,6 +87,10 @@ if [ -z "$XDG_DATA_HOME" ]; then
     XDG_DATA_HOME="$HOME/.local/share"
 fi
 
+if [ -z "$XDG_CACHE_HOME" ]; then
+    XDG_CACHE_HOME="$HOME/.cache"
+fi
+
 if [ "$XIV_USE_RB" = "1" ]; then
     repo="rankynbass"
     name="xivlauncher-rb-local"
@@ -82,7 +105,7 @@ fi
 
 scriptdir="$(realpath "$(dirname "$0")")"
 xldir="$XDG_DATA_HOME/$name"
-tempdir="$XDG_DATA_HOME/xivlocal-installer"
+tempdir="$XDG_CACHE_HOME/XIVLocal-Installer"
 
 VersionToNumber()
 {
@@ -97,6 +120,11 @@ VersionToNumber()
 
 VersionCheck() {
     mkdir -p "$tempdir"
+    if [ "$XIV_DOWNLOAD" = "1" ]; then
+        echo "Skipping version check. Downloading..."
+        Download
+        return
+    fi
     echo "Checking for latest version..."
     latest=$(curl -L "$versioncheck")
     echo "Latest version of $title is $latest"
@@ -128,7 +156,7 @@ Download() {
 }
 
 DownloadAria2() {
-    if [ -e "$tempdir/aria2-static.tar.gz" ]; then
+    if [ -e "$tempdir/aria2-static.tar.gz" ] && [ "$XIV_DOWNLOAD" != "1" ]; then
         echo "Aria2 already cached. Skipping download."
     else
         echo "Downloading static aria2 build..."
@@ -154,22 +182,22 @@ InstallLocal() {
     echo "$current" > "$xldir/version"
 
     echo "Copying additional files..."
-    cp "$scriptdir/xivlauncher.sh" "$xldir/$name"
+    cp "$scriptdir/resources/xivlauncher.sh" "$xldir/$name"
     sed -i "s|XDG_DATA_HOME/NAME|$XDG_DATA_HOME/$name|" "$xldir/$name"
     mkdir -p "$HOME/.local/bin"
     ln -s "$xldir/$name" "$HOME/.local/bin/$name"
 
-    cp "$scriptdir/openssl_fix.cnf" "$xldir/openssl_fix.cnf"
+    cp "$scriptdir/resources/openssl_fix.cnf" "$xldir/openssl_fix.cnf"
 
-    cp "$scriptdir/xivlauncher.png" "$xldir/xivlauncher.png"
+    cp "$scriptdir/resources/xivlauncher.png" "$xldir/xivlauncher.png"
 
-    cp "$scriptdir/COPYING.GPL2" "$xldir/COPYING.GPL2"
+    cp "$scriptdir/resources/COPYING.GPL2" "$xldir/COPYING.GPL2"
 
-    cp "$scriptdir/COPYING.GPL3" "$xldir/COPYING.GPL3"
+    cp "$scriptdir/resources/COPYING.GPL3" "$xldir/COPYING.GPL3"
 
     echo "Making desktop file entry"
     mkdir -p "$XDG_DATA_HOME/applications"
-    cp "$scriptdir/XIVLauncher.desktop" "$XDG_DATA_HOME/applications/$name.desktop"
+    cp "$scriptdir/resources/XIVLauncher.desktop" "$XDG_DATA_HOME/applications/$name.desktop"
     sed -i "s|Name=TITLE|Name=$title|"  "$XDG_DATA_HOME/applications/$name.desktop"
     sed -i "s|Exec=|Exec=$xldir/$name|" "$XDG_DATA_HOME/applications/$name.desktop"
     sed -i "s|Icon=|Icon=$xldir/xivlauncher.png|" "$XDG_DATA_HOME/applications/$name.desktop"
@@ -196,37 +224,50 @@ echo "$title local install removed."
 InstallSteamTool() {
     steamdir="$XDG_DATA_HOME/Steam/compatibilitytools.d/xlcore"
     if [ -e "$steamdir/version" ]; then
-        installed=$(awk 'NR==1 {print; exit}' < "$steamdir/version")
-        release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
-        echo "Steam Compatibility Tool version is $release $installed"
-        if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
-            echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
-            return
-        fi
-        testinstalled=$( VersionToNumber $installed )
-        if [ $testcurrent -le $testinstalled ] && [ "$XIV_FORCE" != "1" ]; then
-            echo "Current installed version is up-to-date. Exiting."
-            return
+        # If the version file is incorrectly formatted, just skip the check
+        linecount=$(wc -l < "$steamdir/version")
+        if [ $linecount -eq 2 ]; then
+            installed=$(awk 'NR==1 {print; exit}' < "$steamdir/version")
+            release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
+            echo "Flatpak Steam Compatiblity Tool version is $release $installed"
+            if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
+                echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
+                return
+            fi
+            testinstalled=$( VersionToNumber $installed )
+            if [ $testcurrent -le $testinstalled ] && [ "$XIV_FORCE" != "1" ]; then
+                echo "Current installed version is up-to-date. Exiting."
+                return
+            fi
         fi
     fi
-    rm -rf "$steamdir"
+    rm -rf "$steamdir/XIVLauncher"
+    rm -rf "$steamdir/bin"
     echo "Installing Steam Comptibility Tool to native Steam: $steamdir"
     mkdir -p "$steamdir/XIVLauncher"
     mkdir -p "$steamdir/bin"
     echo "$current" > "$steamdir/version"
     echo "$title" >> "$steamdir/version"
-    cp "$scriptdir/"* "$steamdir/XIVLauncher"
+    cp "$scriptdir/resources/"* "$steamdir/XIVLauncher"
     tar -xvf "$tempdir/aria2-static.tar.gz" -C "$steamdir/bin"
     tar -xvf "$tempdir/$title.tar.gz" -C "$steamdir/XIVLauncher"
     mv "$steamdir/XIVLauncher/xlcore" "$steamdir"
     mv "$steamdir/XIVLauncher/toolmanifest.vdf" "$steamdir"
     mv "$steamdir/XIVLauncher/compatibilitytool.vdf" "$steamdir"
-    mv "$steamdir/XIVLauncher/update" "$steamdir"
+    if [ "$XIV_TEST" = "1" ]; then
+        rm "$steamdir/XIVLauncher/update"
+        mv "$steamdir/XIVLauncher/update-test" "$steamdir/update"
+        sed -i "s|LOCALREPO|\"${scriptdir}\"/*|" "$steamdir/update"
+    else
+        rm "$steamdir/XIVLauncher/update-test"
+        mv "$steamdir/XIVLauncher/update" "$steamdir"
+    fi
     sed -i "s|release=RELEASE|release=$title|" "$steamdir/xlcore"
     sed -i "s|updateurl=UPDATEURL|updateurl=$versioncheck|" "$steamdir/xlcore"
     sed -i "s|release=RELEASE|release=$title|" "$steamdir/update"
     sed -i "s|updateurl=UPDATEURL|updateurl=$versioncheck|" "$steamdir/update"
-    echo "You need to restart steam for changes to take effect.\n"
+    sed -i "s|flatpak=FLATPAK|flatpak=0|" "$steamdir/update"
+    echo "You need to restart steam for changes to take effect."
 }
 
 UninstallSteamTool() {
@@ -239,17 +280,21 @@ UninstallSteamTool() {
 InstallSteamFPTool() {
     steamdir="$HOME/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/xlcore"
     if [ -e "$steamdir/version" ]; then
-        installed=$(awk 'NR==1 {print; exit}' < "$steamdir/version")
-        release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
-        echo "Flatpak Steam Compatiblity Tool version is $release $installed"
-        if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
-            echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
-            return
-        fi
-        testinstalled=$( VersionToNumber $installed )
-        if [ $testcurrent -le $testinstalled ] && [ "$XIV_FORCE" != "1" ]; then
-            echo "Current installed version is up-to-date. Exiting."
-            return
+        # If the version file is incorrectly formatted, just skip the check
+        linecount=$(wc -l < "$steamdir/version")
+        if [ $linecount -eq 2 ]; then
+            installed=$(awk 'NR==1 {print; exit}' < "$steamdir/version")
+            release=$(awk 'NR==2 {print; exit}' < "$steamdir/version")
+            echo "Flatpak Steam Compatiblity Tool version is $release $installed"
+            if [ "$release" != "$title" ] && [ "$XIV_FORCE" != "1" ]; then
+                echo "There is already a version of $release installed. If you want to replace it with $title, use --force."
+                return
+            fi
+            testinstalled=$( VersionToNumber $installed )
+            if [ $testcurrent -le $testinstalled ] && [ "$XIV_FORCE" != "1" ]; then
+                echo "Current installed version is up-to-date. Exiting."
+                return
+            fi
         fi
     fi
     rm -rf "$steamdir"
@@ -258,13 +303,20 @@ InstallSteamFPTool() {
     mkdir -p "$steamdir/bin"
     echo "$current" > "$steamdir/version"
     echo "$title" >> "$steamdir/version"
-    cp "$scriptdir/"* "$steamdir/XIVLauncher"
+    cp "$scriptdir/resources/"* "$steamdir/XIVLauncher"
     tar -xvf "$tempdir/aria2-static.tar.gz" -C "$steamdir/bin"
     tar -xvf "$tempdir/$title.tar.gz" -C "$steamdir/XIVLauncher"
     mv "$steamdir/XIVLauncher/xlcore" "$steamdir"
     mv "$steamdir/XIVLauncher/toolmanifest.vdf" "$steamdir"
     mv "$steamdir/XIVLauncher/compatibilitytool.vdf" "$steamdir"
-    mv "$steamdir/XIVLauncher/update" "$steamdir"
+    if [ "$XIV_TEST" = "1" ]; then
+        rm "$steamdir/XIVLauncher/update"
+        mv "$steamdir/XIVLauncher/update-test" "$steamdir/update"
+        sed -i "s|LOCALREPO|\"${scriptdir}\"/*|" "$steamdir/update"
+    else
+        rm "$steamdir/XIVLauncher/update-test"
+        mv "$steamdir/XIVLauncher/update" "$steamdir"
+    fi
     sed -i "s|release=RELEASE|release=$title|" "$steamdir/xlcore"
     sed -i "s|updateurl=UPDATEURL|updateurl=$versioncheck|" "$steamdir/xlcore"
     sed -i "s|release=RELEASE|release=$title|" "$steamdir/update"
@@ -277,6 +329,10 @@ UninstallSteamFPTool() {
     echo "Uninstalling Steam Compatibility Tool from $steamdir."
     rm -rf "$steamdir"
     echo "You need to restart steam for changes to take effect."
+}
+
+ClearCache() {
+    rm -rf $XDG_CACHE_HOME/XIVLocal-Installer
 }
 
 HelpText() {
@@ -292,6 +348,8 @@ HelpText() {
     echo "    --uninstall, -u   Uninstall. Works with the above options."
     echo "    --RB              Use XIVLauncher-RB instead of the official XIVLauncher.Core."
     echo "    --force, -f       Force install even if the current version is up-to-date."
+    echo "    --download, -d    Download the files even if they are cached."
+    echo "    --cc              Clear the cached files on exit."
     echo " "
     if [ -n "$XIV_BADOPTION" ]; then
         exit 1
@@ -344,4 +402,8 @@ if [ "$XIV_STEAMFP" = "1" ]; then
     else
         InstallSteamFPTool
     fi
+fi
+
+if [ "$XIV_CLEARCACHE" = "1" ]; then
+    ClearCache
 fi

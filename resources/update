@@ -1,0 +1,93 @@
+#!/bin/env sh
+# Set the release type (Official or RB)
+release=RELEASE
+updateurl=UPDATEURL
+flatpak=FLATPAK
+
+# LD_LIBRARY_PATH will be set by steam to very old ubuntu versions. This will cause curl to fail
+# Save the value and unset.
+OLD_LLP=$LD_LIBRARY_PATH
+unset LD_LIBRARY_PATH
+
+# Working directory is actually the steam install location, so we need to find the path of this script
+tooldir="$(realpath "$(dirname "$0")")"
+tempdir="$tooldir/tmp"
+
+# Dirty hack to convert a.b.c.d version to a number so it can be compared
+VersionToNumber()
+{
+    if [ -z $1 ]; then
+        echo "Error! No version number provided to VersionToNumber()"
+        exit 1
+    fi
+    set -f
+    old_IFS=$IFS
+    IFS='.'
+    read -r FIRST SECOND THIRD FOURTH <<< $1
+    expr ${FIRST:-0} '*' 1000000 + ${SECOND:-0} '*' 10000 + ${THIRD:-0} '*' 100 + ${FOURTH:-0}
+    IFS=$old_IFS
+    set +f
+}
+
+# Do a version check to see if we need to update.
+VersionCheck() {
+    echo "Checking for latest version..."
+    latest=$(curl -L "$updateurl")
+    echo "Latest version of $release is $latest"
+    echo "Checking current version..."
+    if [ -f "$tooldir/version" ]; then
+        # If the version file is incorrectly formatted, just skip the check
+        linecount=$(wc -l < "$steamdir/version")
+        if [ $linecount -eq 2 ]; then
+            current=$(awk 'NR==1 {print; exit}' < "$tooldir/version")
+            echo "Current version of $release is $current"
+            testcurrent=$( VersionToNumber $current )
+            testlatest=$( VersionToNumber $latest )
+            if [ $testlatest -gt $testcurrent ]; then
+                echo "Latest version $latest > $current Current version. Downloading..."
+                Download
+            else
+                echo "$release is up-to-date."
+            fi
+        else
+            echo "Unknown version. Forcing download of $release $latest"
+    else
+        echo "Unknown version. Forcing download of $release $latest"
+        current="$latest"
+        Download
+    fi
+}
+
+# Download the latest XIVLocal-Installer and extract to temp directory, then install
+Download() {
+    mkdir -p "$tempdir"
+    echo "Downloading latest XIVLocal tarball..."
+    curl -L "https://github.com/rankynbass/XIVLocal-Installer/releases/latest/download/XIVLocal-Installer.tar.gz" -o "$tempdir/XIVLocal-Installer.tar.gz"
+    tar -xf "$tempdir/XIVLocal-Installer.tar.gz" -C "$tempdir"
+
+
+    if [ "$flatpak" = "0" ]; then
+        if [ "$release" = "XIVLauncher-RB" ]; then
+            args="--steam --force --RB"
+        else
+            args="--steam --force"
+        fi
+    else
+        if [ "$release" = "XIVLauncher-RB" ]; then
+            args="--steamflatpak --force --RB"
+        else
+            args="--steamflatpak --force"
+        fi
+    fi
+
+    "$tempdir/XIVLocal-Installer/install.sh" $args
+
+    rm -rf "$tooldir/tmp"
+
+    xdg-open "$tooldir/XIVLauncher/updated.txt"
+}
+
+VersionCheck
+
+# Set LD_LIBRARY_PATH back
+LD_LIBRARY_PATH=$OLD_LLP
