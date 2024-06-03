@@ -1,13 +1,11 @@
 #!/bin/env bash
-# Set the release type (Official or RB)
 
 # Working directory is actually the steam install location, so we need to find the path of this script
 tooldir="$(realpath "$(dirname "$0")")"
-parentdir="$(dirname "$tooldir")"
 
 # Prevent double launch
 if [ "$1" = "run" ]; then
-    "$tooldir/install" --update --sct "$parentdir"
+    "$tooldir/install" --update
     exit 0
 fi
 

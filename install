@@ -12,11 +12,12 @@ from urllib.request import urlopen
 
 # Installer class for holding important information. Just easier for managing variables.
 class xiv:
-    def __init__(self, use_rb: bool, install_type: str, install_dir: str = "", update: bool = False):
+    def __init__(self, use_rb: bool, install_type: str, install_dir: str, action: str):
         self.home = os.environ.get("HOME")
         self.xdg_data = os.environ.get("XDG_DATA_HOME") or os.path.join(self.home, ".local", "share")
         self.xdg_cache = os.environ.get("XDG_CACHE_HOME") or os.path.join(self.home, ".cache")
-        self.update = update
+        self.update = False
+        self.action = action
         if install_type == "local":
             self.install_dir = os.path.join(self.xdg_data, "xivlauncher-local")
             self.steam = False
@@ -29,9 +30,12 @@ class xiv:
         elif install_type == "flatpak":
             self.install_dir = os.path.join(self.home, ".var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d/xlcore")
             self.steam = True
-        elif install_type == "sct":
-            self.install_dir = os.path.join(install_dir, "xlcore")
-            self.steam = True
+        elif install_type == "update":
+            self.install_dir = os.path.dirname(__file__)
+            if not os.path.isdir(os.path.join(self.install_dir, "XIVLauncher")):
+                sys.exit(f"Error: {self.install_dir} is not a valid XIVLauncher.Core install location.")
+            self.steam = False if "xivlauncher-local" in self.install_dir else True
+            self.update = True
         elif install_type == "clear":
             self.install_dir = ""
             self.steam = False
@@ -39,7 +43,7 @@ class xiv:
             sys.exit(f"Error: Install type \"{install_type}\" is unknown.")
         self.install_vfile = os.path.join(self.install_dir, "version")
         self.install_version, self.install_release = self.get_version_release(self.install_vfile)
-        if update:
+        if self.update or self.action == "info":
             if self.install_release == "RB-Patched":
                 use_rb = True
             else:
@@ -59,17 +63,19 @@ class xiv:
         self.latest_version = self._latest_version(self.version_url)
         self.xlcore_tgz = os.path.join(self.cache_dir, self.title + ".tar.gz")
         self.aria2_tgz = os.path.join(self.cache_dir, "aria2-static.tar.gz")
+        self.print_args()
+        if self.action == "info":
+            os.sys.exit(0)
         
     def print_args(self):
-        print(f"XDG_DATA_HOME={self.xdg_data}")
-        print(f"XDG_CACHE_HOME={self.xdg_cache}")
-        print(f"XIVLauncher.Core url = {self.xlcore_url}")
-        print(f"Aria2 url = {self.aria2_url}")
-        print(f"Title = {self.title} ({self.release})")
-        print(f"Install Directory = {self.install_dir}")
-        print(f"Steam Compat Tool = {self.steam}")
-        print(f"Cached Version = {self.cached_version} {self.cached_release}")
-        print(f"Install Version = {self.install_version} {self.install_release}")
+        if self.install_dir != "":
+            print(f"Title = {self.title} ({self.release})")
+            print(f"Install Directory = {self.install_dir}")
+            print(f"Steam Compat Tool = {self.steam}")
+            if not self.action == "uninstall":
+                print(f"Latest Version = {self.latest_version}")
+                print(f"Cached Version = {self.cached_version}")
+            print(f"Installed Version = {self.install_version}")
       
     def _latest_version(self, url: str) -> str:
         version = ""
@@ -93,28 +99,28 @@ class xiv:
             sys.exit(f"Error: {file} is a directory. You'll have to manually delete it. Exiting.")
         with open(file, 'w') as versionfile:
             versionfile.write(f"{version}\n{release}\n")
-            print(f"Writing into {file}:\n{version}\n{release}")
+            print(f"Writing into {file}: {version} {release}")
 
 # Argument parser.
 parser = argparse.ArgumentParser(description='Local install tool for XIVLauncher.Core.')
 installer = parser.add_argument_group('Install targets', "Where XIVLauncher will be installed")
 exclusive = installer.add_mutually_exclusive_group()
-exclusive.add_argument("-i", "--local", help="Install to ~/.local/share/xivlaucher-local. The default option if no other options are passed.",
+exclusive.add_argument("-l", "--local", help="Install to ~/.local/share/xivlaucher-local. The default option if no other options are passed.",
                     action="store_true")
-exclusive.add_argument("--custom", help="Install locally to a custom location", metavar="PATH")
+exclusive.add_argument("--custom", help="Install locally to a custom location.", metavar="PATH")
 exclusive.add_argument("-s", "--steam", help="Install as steam compatibility tool to default path. Steam Deck users should choose this.",
                     action="store_true")
-exclusive.add_argument("-f", "--flatpak", help="Install as steam compatibility tool for flatpak steam",
+exclusive.add_argument("-f", "--flatpak", help="Install as steam compatibility tool for flatpak steam.",
                     action="store_true")
-exclusive.add_argument("--sct", help="Install as steam compatibility tool to custom location.", metavar="PATH")
+exclusive.add_argument("--update", help=argparse.SUPPRESS, action="store_true")
 exclusive2 = installer.add_mutually_exclusive_group()
-exclusive2.add_argument("-U", "--update", help="Detect and update the currently installed release.",
-                    action="store_true")
 exclusive2.add_argument("-u", "--uninstall", help="Uninstall the target instead.",
                     action="store_true")
-exclusive2.add_argument("--RB", help="Install XIVLauncher-RB instead of the official XIVLauncher.Core",
+exclusive2.add_argument("--RB", help="Install XIVLauncher-RB instead of the official XIVLauncher.Core.",
                     action="store_true")
-parser.add_argument("--force", help="Force the install even if the current version is up-to-date",
+parser.add_argument("--info", help="Show information on the install target without doing anything.",
+                    action="store_true")
+parser.add_argument("--force", help="Force the install even if the current version is up-to-date.",
                     action="store_true")
 parser.add_argument("-d", "--download", help="Always download the source, even if it's already cached.",
                     action="store_true")
@@ -122,7 +128,7 @@ parser.add_argument("--clear", help="Clear the cached files and exit.", action="
 args = parser.parse_args()
 
 def get_install_type():
-    if not args.steam and not args.flatpak and args.sct == None and args.custom == None and not args.clear:
+    if not args.steam and not args.flatpak and args.custom == None and not args.update and not args.clear:
         args.local = True
     if args.local:
         return "local", ""
@@ -132,11 +138,18 @@ def get_install_type():
         return "flatpak", ""
     if args.custom != None:
         return "custom", args.custom
-    if args.sct != None:
-        return "sct", args.sct
+    if args.update:
+        return "update", ""
     if args.clear:
         return "clear", ""
     return "Unknown", ""
+    
+def get_action():
+    if args.uninstall:
+        return "uninstall"
+    if args.info:
+        return "info"
+    return "install"
     
 def download_file(url: str, filename: str) -> None:
     print(f"Downloading {filename} from {url}")
@@ -263,11 +276,7 @@ def install_xlcore(install: xiv):
     shutil.unpack_archive(install.xlcore_tgz, xivlauncher_dir)
     shutil.unpack_archive(install.aria2_tgz, xivlauncher_dir)
     if install.update:
-        if not os.path.exists(install.install_vfile):
-            install.set_version_release(os.path.join(install.install_dir, "version"), install.latest_version, install.release)
-            print(f"{install.title} has been installed to {install.install_dir}.")
         print("Update complete.")
-        return
     elif install.steam:
         print(f"Copying additional files...")
         shutil.copy(__file__, install.install_dir)
@@ -298,6 +307,8 @@ def install_xlcore(install: xiv):
     print(f"{install.title} has been installed to {install.install_dir}.")
         
 def uninstall_xlcore(install: xiv):
+    if not os.path.isdir(os.path.join(install.install_dir, "XIVLauncher")):
+        os.sys.exit(f"Error: {install.install_dir} does not appear to be an XIVLauncher install.")
     print(f"Uninstalling {install.title} from {install.install_dir}")
     clear_directory(install.install_dir)
     if os.path.islink(install.install_dir):
@@ -311,12 +322,14 @@ def uninstall_xlcore(install: xiv):
         os.unlink(os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop"))
         print(f"Local version of {install.title} has been uninstalled.")
 
-# Main program logic starts here   
+# Main program logic starts here
 install_type, install_dir = get_install_type()
-installer = xiv(args.RB, install_type, install_dir, args.update)
-installer.print_args()
+action = get_action()
+installer = xiv(args.RB, install_type, install_dir, action)
 if args.clear:
     clear_directory(installer.cache_dir)
+    os.rmdir(installer.cache_dir)
+    print(f"{installer.cache_dir} cleared.")
 elif args.uninstall:
     uninstall_xlcore(installer)
 else:
