@@ -1,20 +1,14 @@
 #!/bin/env bash
 # Set the release type (Official or RB)
-release=RELEASE
-updateurl=UPDATEURL
 
 # Working directory is actually the steam install location, so we need to find the path of this script
 tooldir="$(realpath "$(dirname "$0")")"
+parentdir="$(dirname "$tooldir")"
 
 # Prevent double launch
 if [ "$1" = "run" ]; then
-    updated=$("$tooldir/update")
-    sleep 1
-    if [ "updated" = "UPDATED" ]; then
-        exit 1
-    else
-        exit 0
-    fi
+    "$tooldir/install" --update --sct "$parentdir"
+    exit 0
 fi
 
 xlcoreDir="$HOME/.xlcore"
