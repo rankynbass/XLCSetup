@@ -10,8 +10,34 @@ import shutil
 import tarfile
 from urllib.request import urlopen
 
+# Argument parser.
+parser = argparse.ArgumentParser(description='Local install tool for XIVLauncher.Core.')
+targets = parser.add_argument_group('Install targets', "Where XIVLauncher will be installed")
+exclusive = targets.add_mutually_exclusive_group()
+exclusive.add_argument("-l", "--local", help="Install to ~/.local/share/xivlaucher-core. The default option if no other options are passed.",
+                    action="store_true")
+exclusive.add_argument("--custom", help="Install locally to a custom location.", metavar="PATH")
+exclusive.add_argument("-s", "--steam", help="Install as steam compatibility tool to default path. Steam Deck users should choose this.",
+                    action="store_true")
+exclusive.add_argument("-f", "--flatpak", help="Install as steam compatibility tool for flatpak steam.",
+                    action="store_true")
+exclusive.add_argument("--update", help=argparse.SUPPRESS, action="store_true")
+exclusive2 = targets.add_mutually_exclusive_group()
+exclusive2.add_argument("-u", "--uninstall", help="Uninstall the target instead.",
+                    action="store_true")
+exclusive2.add_argument("--RB", help="Install XIVLauncher-RB instead of the official XIVLauncher.Core.",
+                    action="store_true")
+parser.add_argument("--info", help="Show information on the install target without doing anything.",
+                    action="store_true")
+parser.add_argument("--force", help="Force the install even if the current version is up-to-date.",
+                    action="store_true")
+parser.add_argument("-d", "--download", help="Always download the source, even if it's already cached.",
+                    action="store_true")
+parser.add_argument("--clear", help="Clear the cached files and exit.", action="store_true")
+args = parser.parse_args()
+
 # Installer class for holding important information. Just easier for managing variables.
-class xiv:
+class xlcore_local_installer:
     def __init__(self, use_rb: bool, install_type: str, install_dir: str, action: str):
         self.home = os.environ.get("HOME")
         self.xdg_data = os.environ.get("XDG_DATA_HOME") or os.path.join(self.home, ".local", "share")
@@ -19,10 +45,10 @@ class xiv:
         self.update = False
         self.action = action
         if install_type == "local":
-            self.install_dir = os.path.join(self.xdg_data, "xivlauncher-local")
+            self.install_dir = os.path.join(self.xdg_data, "xivlauncher-core")
             self.steam = False
         elif install_type == "custom":
-            self.install_dir = os.path.join(os.path.expanduser(install_dir), "xivlauncher-local")
+            self.install_dir = os.path.join(os.path.expanduser(install_dir), "xivlauncher-core")
             self.steam = False
         elif install_type == "steam":
             self.install_dir = os.path.join(self.xdg_data, "Steam/compatibilitytools.d/xlcore")
@@ -34,7 +60,7 @@ class xiv:
             self.install_dir = os.path.dirname(__file__)
             if not os.path.isdir(os.path.join(self.install_dir, "XIVLauncher")):
                 sys.exit(f"Error: {self.install_dir} is not a valid XIVLauncher.Core install location.")
-            self.steam = False if "xivlauncher-local" in self.install_dir else True
+            self.steam = False if "xivlauncher-core" in self.install_dir else True
             self.update = True
         elif install_type == "clear":
             self.install_dir = ""
@@ -100,32 +126,6 @@ class xiv:
         with open(file, 'w') as versionfile:
             versionfile.write(f"{version}\n{release}\n")
             print(f"Writing into {file}: {version} {release}")
-
-# Argument parser.
-parser = argparse.ArgumentParser(description='Local install tool for XIVLauncher.Core.')
-installer = parser.add_argument_group('Install targets', "Where XIVLauncher will be installed")
-exclusive = installer.add_mutually_exclusive_group()
-exclusive.add_argument("-l", "--local", help="Install to ~/.local/share/xivlaucher-local. The default option if no other options are passed.",
-                    action="store_true")
-exclusive.add_argument("--custom", help="Install locally to a custom location.", metavar="PATH")
-exclusive.add_argument("-s", "--steam", help="Install as steam compatibility tool to default path. Steam Deck users should choose this.",
-                    action="store_true")
-exclusive.add_argument("-f", "--flatpak", help="Install as steam compatibility tool for flatpak steam.",
-                    action="store_true")
-exclusive.add_argument("--update", help=argparse.SUPPRESS, action="store_true")
-exclusive2 = installer.add_mutually_exclusive_group()
-exclusive2.add_argument("-u", "--uninstall", help="Uninstall the target instead.",
-                    action="store_true")
-exclusive2.add_argument("--RB", help="Install XIVLauncher-RB instead of the official XIVLauncher.Core.",
-                    action="store_true")
-parser.add_argument("--info", help="Show information on the install target without doing anything.",
-                    action="store_true")
-parser.add_argument("--force", help="Force the install even if the current version is up-to-date.",
-                    action="store_true")
-parser.add_argument("-d", "--download", help="Always download the source, even if it's already cached.",
-                    action="store_true")
-parser.add_argument("--clear", help="Clear the cached files and exit.", action="store_true")
-args = parser.parse_args()
 
 def get_install_type():
     if not args.steam and not args.flatpak and args.custom == None and not args.update and not args.clear:
@@ -206,55 +206,55 @@ def clear_directory(path) -> None:
     if not os.path.exists(path):
         return
     elif not os.path.isdir(path):
-        sys.exit(f"{path} is not a directory. You must manually remove it to complete the install.")
+        sys.exit(f"{path} is not a directory. You must manually remove it to complete the xli.")
     for root, dirs, files in os.walk(clean_me, topdown=False):
         for f in files:
             os.unlink(os.path.join(root, f))
         for d in dirs:
             os.rmdir(os.path.join(root, d))
             
-def download_tarballs(install: xiv) -> bool:
+def download_tarballs(xli: xlcore_local_installer) -> bool:
     # Determine if we should download files into the cache
     download = args.download
     if args.download:
         print("Using --download. Forcing download...")
-    elif not os.path.isfile(install.xlcore_tgz) or install.cached_version == None:
-        print(f"No cached copy of {install.title} found. Downloading v{install.latest_version}...")
+    elif not os.path.isfile(xli.xlcore_tgz) or xli.cached_version == None:
+        print(f"No cached copy of {xli.title} found. Downloading v{xli.latest_version}...")
         download = True
-    elif needs_update(install.latest_version, install.cached_version):
-        print(f"Cached copy of {install.title} is out of date. Downloading v{install.latest_version}...")
+    elif needs_update(xli.latest_version, xli.cached_version):
+        print(f"Cached copy of {xli.title} is out of date. Downloading v{xli.latest_version}...")
         download = True
-    elif os.path.isfile(install.xlcore_tgz):
-        print(f"Cached copy of {install.title} found. Skipping download.")
+    elif os.path.isfile(xli.xlcore_tgz):
+        print(f"Cached copy of {xli.title} found. Skipping download.")
     else:
         exit("Can't determine the state of the file cache. Use --download to force download.")
     
     # Download the xlcore tarball if needed or forced
     if download:
-        os.makedirs(install.cache_dir, exist_ok=True)
-        download_file(install.xlcore_url, install.xlcore_tgz)
-        install.set_version_release(install.cached_vfile, install.latest_version, install.release)
+        os.makedirs(xli.cache_dir, exist_ok=True)
+        download_file(xli.xlcore_url, xli.xlcore_tgz)
+        xli.set_version_release(xli.cached_vfile, xli.latest_version, xli.release)
     
     # Download the aria2 tarball if needed or forced
-    if not os.path.isfile(install.aria2_tgz) or args.download:
-        download_file(install.aria2_url, install.aria2_tgz)
+    if not os.path.isfile(xli.aria2_tgz) or args.download:
+        download_file(xli.aria2_url, xli.aria2_tgz)
     else:
         print("Cached copy of aria2 found. Skipping download.")
 
-def install_xlcore(install: xiv):
+def install_xlcore(xli: xlcore_local_installer):
     # Determine if we should install xlcore
-    print(f"Checking for installed version of {install.title}...")
+    print(f"Checking for installed version of {xli.title}...")
     do_install = args.force
-    force_msg = "" if install.update else " Use --force to install anyway."
+    force_msg = "" if xli.update else " Use --force to install anyway."
     if args.force:
         print("Using --force. Skipping version check. Installing...")
-    elif installer.install_release == None:
+    elif xli.install_release == None:
         print("No installed version detected. Installing...")
         do_install = True
-    elif installer.install_release != installer.release:
+    elif xli.install_release != xli.release:
         print(f"Release types do not match.{force_msg}")
-    elif needs_update(install.latest_version, install.install_version):
-        print(f"Latest release {install.latest_version} is newer than {install.install_version}. Updating...")
+    elif needs_update(xli.latest_version, xli.install_version):
+        print(f"Latest release {xli.latest_version} is newer than {xli.install_version}. Updating...")
         do_install = True
     else:
         print(f"Installed version is up to date.{force_msg}")
@@ -262,76 +262,78 @@ def install_xlcore(install: xiv):
         return
 
     # Download the files
-    download_tarballs(install)
+    download_tarballs(xli)
     if not do_install:
         return
     
-    xivlauncher_dir = os.path.join(install.install_dir, "XIVLauncher")
+    xivlauncher_dir = os.path.join(xli.install_dir, "XIVLauncher")
     clear_directory(xivlauncher_dir)
-    localbin_dir = os.path.join(install.home, ".local", "bin")
+    localbin_dir = os.path.join(xli.home, ".local", "bin")
     resource_dir = os.path.join(os.path.dirname(__file__), "resources")
     os.makedirs(xivlauncher_dir, exist_ok=True)
     os.makedirs(localbin_dir, exist_ok=True)
-    print(f"Unpacking files to {install.install_dir}...")
-    shutil.unpack_archive(install.xlcore_tgz, xivlauncher_dir)
-    shutil.unpack_archive(install.aria2_tgz, xivlauncher_dir)
-    if install.update:
+    print(f"Unpacking files to {xli.install_dir}...")
+    shutil.unpack_archive(xli.xlcore_tgz, xivlauncher_dir)
+    shutil.unpack_archive(xli.aria2_tgz, xivlauncher_dir)
+    if xli.update:
         print("Update complete.")
-    elif install.steam:
+    elif xli.steam:
         print(f"Copying additional files...")
-        shutil.copy(__file__, install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "xlcore"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "toolmanifest.vdf"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "compatibilitytool.vdf"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), install.install_dir)
+        shutil.copy(__file__, xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "xlcore"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "toolmanifest.vdf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "compatibilitytool.vdf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), xli.install_dir)
     else:
         print(f"Copying additional files...")
-        shutil.copy(__file__, install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "xivlauncher.sh"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), install.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), install.install_dir)
+        shutil.copy(__file__, xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "xivlauncher.sh"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), xli.install_dir)
         if os.path.isfile(os.path.join(localbin_dir, "xivlauncher-local")) or os.path.islink(os.path.join(localbin_dir, "xivlauncher-local")):
             os.unlink(os.path.join(localbin_dir, "xivlauncher-local"))
-        os.symlink(os.path.join(install.install_dir, "xivlauncher.sh"), os.path.join(localbin_dir, "xivlauncher-local"))
-        shutil.copy(os.path.join(resource_dir, "XIVLauncher.desktop"), os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop"))
-        shutil.copy(os.path.join(resource_dir, "xivlauncher.png"), install.install_dir)
-        os.system(f'sed -i "s|TITLE (local)|{install.title} (Local)|" {os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop")}')
-        os.system(f'sed -i "s|Exec=|Exec={os.path.join(install.install_dir, "xivlauncher.sh")}|" "{os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
-        os.system(f'sed -i "s|Icon=|Icon={os.path.join(install.install_dir, "xivlauncher.png")}|" "{os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
-        os.system(f'sed -i "s|installdir=|installdir=\\"{install.install_dir}\\"|" "{os.path.join(install.install_dir, "xivlauncher.sh")}"')
+        os.symlink(os.path.join(xli.install_dir, "xivlauncher.sh"), os.path.join(localbin_dir, "xivlauncher-local"))
+        shutil.copy(os.path.join(resource_dir, "XIVLauncher.desktop"), os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
+        shutil.copy(os.path.join(resource_dir, "xivlauncher.png"), xli.install_dir)
+        os.system(f'sed -i "s|TITLE (local)|{xli.title} (Local)|" {os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}')
+        os.system(f'sed -i "s|Exec=|Exec={os.path.join(xli.install_dir, "xivlauncher.sh")}|" "{os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
+        os.system(f'sed -i "s|Icon=|Icon={os.path.join(xli.install_dir, "xivlauncher.png")}|" "{os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
+        os.system(f'sed -i "s|installdir=|installdir=\\"{xli.install_dir}\\"|" "{os.path.join(xli.install_dir, "xivlauncher.sh")}"')
         os.system('xdg-desktop-menu forceupdate')
-    install.set_version_release(os.path.join(install.install_dir, "version"), install.latest_version, install.release)
-    print(f"{install.title} has been installed to {install.install_dir}.")
+    xli.set_version_release(os.path.join(xli.install_dir, "version"), xli.latest_version, xli.release)
+    print(f"{xli.title} has been installed to {xli.install_dir}.")
         
-def uninstall_xlcore(install: xiv):
-    if not os.path.isdir(os.path.join(install.install_dir, "XIVLauncher")):
-        os.sys.exit(f"Error: {install.install_dir} does not appear to be an XIVLauncher install.")
-    print(f"Uninstalling {install.title} from {install.install_dir}")
-    clear_directory(install.install_dir)
-    if os.path.islink(install.install_dir):
-        os.unlink(install.install_dir)
-    elif os.path.isdir(install.install_dir):
-        os.rmdir(install.install_dir)
-    if install.steam:
+def uninstall_xlcore(xli: xlcore_local_installer):
+    if not os.path.isdir(os.path.join(xli.install_dir, "XIVLauncher")):
+        os.sys.exit(f"Error: {xli.install_dir} does not appear to be an XIVLauncher xli.")
+    print(f"Uninstalling {xli.title} from {xli.install_dir}")
+    clear_directory(xli.install_dir)
+    if os.path.islink(xli.install_dir):
+        os.unlink(xli.install_dir)
+    elif os.path.isdir(xli.install_dir):
+        os.rmdir(xli.install_dir)
+    if xli.steam:
         print("You need to restart steam to remove XIVLauncher from the compatibility tools list.")
     else:
-        os.unlink(os.path.join(install.home, ".local", "bin", "xivlauncher-local"))
-        os.unlink(os.path.join(install.xdg_data, "applications", "XIVLauncher-Local.desktop"))
-        print(f"Local version of {install.title} has been uninstalled.")
+        if os.path.isfile(os.path.join(xli.home, ".local", "bin", "xivlauncher-local")):
+            os.unlink(os.path.join(xli.home, ".local", "bin", "xivlauncher-local"))
+        if os.path.isfile(os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")):
+            os.unlink(os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
+        print(f"Local version of {xli.title} has been uninstalled.")
 
 # Main program logic starts here
 install_type, install_dir = get_install_type()
 action = get_action()
-installer = xiv(args.RB, install_type, install_dir, action)
+xli = xlcore_local_installer(args.RB, install_type, install_dir, action)
 if args.clear:
-    clear_directory(installer.cache_dir)
-    os.rmdir(installer.cache_dir)
-    print(f"{installer.cache_dir} cleared.")
+    clear_directory(xli.cache_dir)
+    os.rmdir(xli.cache_dir)
+    print(f"{xli.cache_dir} cleared.")
 elif args.uninstall:
-    uninstall_xlcore(installer)
+    uninstall_xlcore(xli)
 else:
-    install_xlcore(installer)
+    install_xlcore(xli)
     
