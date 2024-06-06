@@ -2,10 +2,10 @@
 {
   "compat_tools"
   {
-	"XLCore-SCT" // Internal name of this tool
+	"XIVLauncher-RB" // Internal name of this tool
 	{
 	  "install_path" "."
-	  "display_name" "XIVLauncher.Core as Compatibility Tool"
+	  "display_name" "XIVLauncher-RB"
 
 	  "from_oslist"  "windows"
 	  "to_oslist"    "linux"
