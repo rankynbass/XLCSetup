@@ -6,8 +6,8 @@ Download XIVLocal-Installer.tar.gz from the latest release and extract. Alternat
 
 Then run the install script
 ```
-$ ./install -h
-usage: install [-h] [-l | --custom PATH | -s | -f] [-u | --RB] [--info] [--force] [-d] [--clear]
+$ ./rbli -h                     
+usage: rbli [-h] [-l | --custom PATH | -s | -f] [-u | --RB] [--info] [--force] [-d] [--clear]
 
 Local install tool for XIVLauncher.Core.
 
@@ -21,7 +21,7 @@ options:
 Install targets:
   Where XIVLauncher will be installed
 
-  -l, --local      Install to ~/.local/share/xivlaucher-local. The default option if no other options are passed.
+  -l, --local      Install to ~/.local/share/xivlaucher-core. The default option if no other options are passed.
   --custom PATH    Install locally to a custom location.
   -s, --steam      Install as steam compatibility tool to default path. Steam Deck users should choose this.
   -f, --flatpak    Install as steam compatibility tool for flatpak steam.
@@ -39,6 +39,7 @@ Install targets:
 6. Create a .desktop file that points to the launcher, and try to refresh your desktop menu.
 
 ### Using --steam or --steamflatpak
+**Note: I recommend using --RB with these options for the moment. It has a few extra bits to work around a few bugs. The official release *will* still work, however.**
 1. Download and extract aria2-static and the latest XIVLauncher as above.
 2. Copy the necessary files from the `resources` folder to the steam compatibility tool directory
 3. After restarting steam, you can right-click on Final Fantasy XIV, go to settings, Compatibility, and select "XIVLauncher as Compatibility Tool".
