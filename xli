@@ -11,10 +11,10 @@ import tarfile
 from urllib.request import urlopen
 
 # Argument parser.
-parser = argparse.ArgumentParser(description='Local install tool for XIVLauncher-RB.')
-targets = parser.add_argument_group('Install targets', "Where XIVLauncher-RB will be installed")
+parser = argparse.ArgumentParser(description='Local install tool for XIVLauncher.Core.')
+targets = parser.add_argument_group('Install targets', "Where XIVLauncher will be installed")
 exclusive = targets.add_mutually_exclusive_group()
-exclusive.add_argument("-l", "--local", help="Install to ~/.local/share/xivlaucher-rb. The default option if no other options are passed.",
+exclusive.add_argument("-l", "--local", help="Install to ~/.local/share/xivlaucher-core. The default option if no other options are passed.",
                     action="store_true")
 exclusive.add_argument("--custom", help="Install locally to a custom location.", metavar="PATH")
 exclusive.add_argument("-s", "--steam", help="Install as steam compatibility tool to default path. Steam Deck users should choose this.",
@@ -24,6 +24,8 @@ exclusive.add_argument("-f", "--flatpak", help="Install as steam compatibility t
 exclusive.add_argument("--update", help=argparse.SUPPRESS, action="store_true")
 exclusive2 = targets.add_mutually_exclusive_group()
 exclusive2.add_argument("-u", "--uninstall", help="Uninstall the target instead.",
+                    action="store_true")
+exclusive2.add_argument("--RB", help="Install XIVLauncher-RB instead of the official XIVLauncher.Core.",
                     action="store_true")
 parser.add_argument("--info", help="Show information on the install target without doing anything.",
                     action="store_true")
@@ -35,18 +37,18 @@ parser.add_argument("--clear", help="Clear the cached files and exit.", action="
 args = parser.parse_args()
 
 # Installer class for holding important information. Just easier for managing variables.
-class rb_installer:
-    def __init__(self, install_type: str, install_dir: str, action: str):
+class xlcore_local_installer:
+    def __init__(self, use_rb: bool, install_type: str, install_dir: str, action: str):
         self.home = os.environ.get("HOME")
         self.xdg_data = os.environ.get("XDG_DATA_HOME") or os.path.join(self.home, ".local", "share")
         self.xdg_cache = os.environ.get("XDG_CACHE_HOME") or os.path.join(self.home, ".cache")
         self.update = False
         self.action = action
         if install_type == "local":
-            self.install_dir = os.path.join(self.xdg_data, "xivlauncher-rb")
+            self.install_dir = os.path.join(self.xdg_data, "xivlauncher-core")
             self.steam = False
         elif install_type == "custom":
-            self.install_dir = os.path.join(os.path.expanduser(install_dir), "xivlauncher-rb")
+            self.install_dir = os.path.join(os.path.expanduser(install_dir), "xivlauncher-core")
             self.steam = False
         elif install_type == "steam":
             self.install_dir = os.path.join(self.xdg_data, "Steam/compatibilitytools.d/xlcore")
@@ -58,7 +60,7 @@ class rb_installer:
             self.install_dir = os.path.dirname(__file__)
             if not os.path.isdir(os.path.join(self.install_dir, "XIVLauncher")):
                 sys.exit(f"Error: {self.install_dir} is not a valid XIVLauncher.Core install location.")
-            self.steam = False if "xivlauncher-rb" in self.install_dir else True
+            self.steam = False if "xivlauncher-core" in self.install_dir else True
             self.update = True
         elif install_type == "clear":
             self.install_dir = ""
@@ -67,15 +69,23 @@ class rb_installer:
             sys.exit(f"Error: Install type \"{install_type}\" is unknown.")
         self.install_vfile = os.path.join(self.install_dir, "version")
         self.install_version, self.install_release = self.get_version_release(self.install_vfile)
-        self.repo = "rankynbass"
-        self.title = "XIVLauncher-RB"
-        self.release = "RB-Patched"
+        if self.update or self.action == "info":
+            if self.install_release == "RB-Patched":
+                use_rb = True
+            else:
+                use_rb = False
+        self.repo = "rankynbass" if use_rb else "goatcorp"
+        self.title = "XIVLauncher-RB" if use_rb else "XIVLauncher.Core"
+        self.release = "RB-Patched" if use_rb else "Official"
         self.xlcore_url = f"https://github.com/{self.repo}/XIVLauncher.Core/releases/latest/download/XIVLauncher.Core.tar.gz"
         self.aria2_url = "https://github.com/rankynbass/aria2-static-build/releases/latest/download/aria2-static.tar.gz"
         self.cache_dir = os.path.join(self.xdg_cache, "XIVLocal-Installer")
         self.cached_vfile = os.path.join(self.cache_dir, f"version-{self.repo}")
         self.cached_version, self.cached_release = self.get_version_release(self.cached_vfile)
-        self.version_url = "https://raw.githubusercontent.com/rankynbass/XIVLauncher.Core/RB-patched/version.txt"           
+        if use_rb:
+            self.version_url = "https://raw.githubusercontent.com/rankynbass/XIVLauncher.Core/RB-patched/version.txt"
+        else:
+            self.version_url = "https://raw.githubusercontent.com/goatcorp/xlcore-distrib/main/version.txt"            
         self.latest_version = self._latest_version(self.version_url)
         self.xlcore_tgz = os.path.join(self.cache_dir, self.title + ".tar.gz")
         self.aria2_tgz = os.path.join(self.cache_dir, "aria2-static.tar.gz")
@@ -196,55 +206,55 @@ def clear_directory(path) -> None:
     if not os.path.exists(path):
         return
     elif not os.path.isdir(path):
-        sys.exit(f"{path} is not a directory. You must manually remove it to complete the installation.")
+        sys.exit(f"{path} is not a directory. You must manually remove it to complete the xli.")
     for root, dirs, files in os.walk(clean_me, topdown=False):
         for f in files:
             os.unlink(os.path.join(root, f))
         for d in dirs:
             os.rmdir(os.path.join(root, d))
             
-def download_tarballs(rbli: rb_installer) -> bool:
+def download_tarballs(xli: xlcore_local_installer) -> bool:
     # Determine if we should download files into the cache
     download = args.download
     if args.download:
         print("Using --download. Forcing download...")
-    elif not os.path.isfile(rbli.xlcore_tgz) or rbli.cached_version == None:
-        print(f"No cached copy of {rbli.title} found. Downloading v{rbli.latest_version}...")
+    elif not os.path.isfile(xli.xlcore_tgz) or xli.cached_version == None:
+        print(f"No cached copy of {xli.title} found. Downloading v{xli.latest_version}...")
         download = True
-    elif needs_update(rbli.latest_version, rbli.cached_version):
-        print(f"Cached copy of {rbli.title} is out of date. Downloading v{rbli.latest_version}...")
+    elif needs_update(xli.latest_version, xli.cached_version):
+        print(f"Cached copy of {xli.title} is out of date. Downloading v{xli.latest_version}...")
         download = True
-    elif os.path.isfile(rbli.xlcore_tgz):
-        print(f"Cached copy of {rbli.title} found. Skipping download.")
+    elif os.path.isfile(xli.xlcore_tgz):
+        print(f"Cached copy of {xli.title} found. Skipping download.")
     else:
         exit("Can't determine the state of the file cache. Use --download to force download.")
     
     # Download the xlcore tarball if needed or forced
     if download:
-        os.makedirs(rbli.cache_dir, exist_ok=True)
-        download_file(rbli.xlcore_url, rbli.xlcore_tgz)
-        rbli.set_version_release(rbli.cached_vfile, rbli.latest_version, rbli.release)
+        os.makedirs(xli.cache_dir, exist_ok=True)
+        download_file(xli.xlcore_url, xli.xlcore_tgz)
+        xli.set_version_release(xli.cached_vfile, xli.latest_version, xli.release)
     
     # Download the aria2 tarball if needed or forced
-    if not os.path.isfile(rbli.aria2_tgz) or args.download:
-        download_file(rbli.aria2_url, rbli.aria2_tgz)
+    if not os.path.isfile(xli.aria2_tgz) or args.download:
+        download_file(xli.aria2_url, xli.aria2_tgz)
     else:
         print("Cached copy of aria2 found. Skipping download.")
 
-def install_xlcore(rbli: rb_installer):
+def install_xlcore(xli: xlcore_local_installer):
     # Determine if we should install xlcore
-    print(f"Checking for installed version of {rbli.title}...")
+    print(f"Checking for installed version of {xli.title}...")
     do_install = args.force
-    force_msg = "" if rbli.update else " Use --force to install anyway."
+    force_msg = "" if xli.update else " Use --force to install anyway."
     if args.force:
         print("Using --force. Skipping version check. Installing...")
-    elif rbli.install_release == None:
+    elif xli.install_release == None:
         print("No installed version detected. Installing...")
         do_install = True
-    elif rbli.install_release != rbli.release:
+    elif xli.install_release != xli.release:
         print(f"Release types do not match.{force_msg}")
-    elif needs_update(rbli.latest_version, rbli.install_version):
-        print(f"Latest release {rbli.latest_version} is newer than {rbli.install_version}. Updating...")
+    elif needs_update(xli.latest_version, xli.install_version):
+        print(f"Latest release {xli.latest_version} is newer than {xli.install_version}. Updating...")
         do_install = True
     else:
         print(f"Installed version is up to date.{force_msg}")
@@ -252,78 +262,78 @@ def install_xlcore(rbli: rb_installer):
         return
 
     # Download the files
-    download_tarballs(rbli)
+    download_tarballs(xli)
     if not do_install:
         return
     
-    xivlauncher_dir = os.path.join(rbli.install_dir, "XIVLauncher")
+    xivlauncher_dir = os.path.join(xli.install_dir, "XIVLauncher")
     clear_directory(xivlauncher_dir)
-    localbin_dir = os.path.join(rbli.home, ".local", "bin")
+    localbin_dir = os.path.join(xli.home, ".local", "bin")
     resource_dir = os.path.join(os.path.dirname(__file__), "resources")
     os.makedirs(xivlauncher_dir, exist_ok=True)
     os.makedirs(localbin_dir, exist_ok=True)
-    print(f"Unpacking files to {rbli.install_dir}...")
-    shutil.unpack_archive(rbli.xlcore_tgz, xivlauncher_dir)
-    shutil.unpack_archive(rbli.aria2_tgz, xivlauncher_dir)
-    if rbli.update:
+    print(f"Unpacking files to {xli.install_dir}...")
+    shutil.unpack_archive(xli.xlcore_tgz, xivlauncher_dir)
+    shutil.unpack_archive(xli.aria2_tgz, xivlauncher_dir)
+    if xli.update:
         print("Update complete.")
-    elif rbli.steam:
+    elif xli.steam:
         print(f"Copying additional files...")
-        shutil.copy(__file__, rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "xlcore"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "toolmanifest.vdf"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "compatibilitytool.vdf"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), rbli.install_dir)
+        shutil.copy(__file__, xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "xlcore"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "toolmanifest.vdf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "compatibilitytool.vdf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), xli.install_dir)
     else:
         print(f"Copying additional files...")
-        shutil.copy(__file__, rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "xivlauncher.sh"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), rbli.install_dir)
-        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), rbli.install_dir)
+        shutil.copy(__file__, xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "openssl_fix.cnf"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "xivlauncher.sh"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL2"), xli.install_dir)
+        shutil.copy(os.path.join(resource_dir, "COPYING.GPL3"), xli.install_dir)
         if os.path.isfile(os.path.join(localbin_dir, "xivlauncher-local")) or os.path.islink(os.path.join(localbin_dir, "xivlauncher-local")):
             os.unlink(os.path.join(localbin_dir, "xivlauncher-local"))
-        os.symlink(os.path.join(rbli.install_dir, "xivlauncher.sh"), os.path.join(localbin_dir, "xivlauncher-local"))
-        shutil.copy(os.path.join(resource_dir, "XIVLauncher.desktop"), os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
-        shutil.copy(os.path.join(resource_dir, "xivlauncher.png"), rbli.install_dir)
-        os.system(f'sed -i "s|TITLE (local)|{rbli.title} (Local)|" {os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop")}')
-        os.system(f'sed -i "s|Exec=|Exec={os.path.join(rbli.install_dir, "xivlauncher.sh")}|" "{os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
-        os.system(f'sed -i "s|Icon=|Icon={os.path.join(rbli.install_dir, "xivlauncher.png")}|" "{os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
-        os.system(f'sed -i "s|installdir=|installdir=\\"{rbli.install_dir}\\"|" "{os.path.join(rbli.install_dir, "xivlauncher.sh")}"')
+        os.symlink(os.path.join(xli.install_dir, "xivlauncher.sh"), os.path.join(localbin_dir, "xivlauncher-local"))
+        shutil.copy(os.path.join(resource_dir, "XIVLauncher.desktop"), os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
+        shutil.copy(os.path.join(resource_dir, "xivlauncher.png"), xli.install_dir)
+        os.system(f'sed -i "s|TITLE (local)|{xli.title} (Local)|" {os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}')
+        os.system(f'sed -i "s|Exec=|Exec={os.path.join(xli.install_dir, "xivlauncher.sh")}|" "{os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
+        os.system(f'sed -i "s|Icon=|Icon={os.path.join(xli.install_dir, "xivlauncher.png")}|" "{os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")}"')
+        os.system(f'sed -i "s|installdir=|installdir=\\"{xli.install_dir}\\"|" "{os.path.join(xli.install_dir, "xivlauncher.sh")}"')
         os.system('xdg-desktop-menu forceupdate')
-    rbli.set_version_release(os.path.join(rbli.install_dir, "version"), rbli.latest_version, rbli.release)
-    print(f"{rbli.title} has been installed to {rbli.install_dir}.")
+    xli.set_version_release(os.path.join(xli.install_dir, "version"), xli.latest_version, xli.release)
+    print(f"{xli.title} has been installed to {xli.install_dir}.")
         
-def uninstall_xlcore(rbli: rb_installer):
-    if not os.path.isdir(os.path.join(rbli.install_dir, "XIVLauncher")):
-        os.sys.exit(f"Error: {rbli.install_dir} does not appear to be an XIVLauncher rbli.")
-    print(f"Uninstalling {rbli.title} from {rbli.install_dir}")
-    clear_directory(rbli.install_dir)
-    if os.path.islink(rbli.install_dir):
-        os.unlink(rbli.install_dir)
-    elif os.path.isdir(rbli.install_dir):
-        os.rmdir(rbli.install_dir)
-    if rbli.steam:
+def uninstall_xlcore(xli: xlcore_local_installer):
+    if not os.path.isdir(os.path.join(xli.install_dir, "XIVLauncher")):
+        os.sys.exit(f"Error: {xli.install_dir} does not appear to be an XIVLauncher xli.")
+    print(f"Uninstalling {xli.title} from {xli.install_dir}")
+    clear_directory(xli.install_dir)
+    if os.path.islink(xli.install_dir):
+        os.unlink(xli.install_dir)
+    elif os.path.isdir(xli.install_dir):
+        os.rmdir(xli.install_dir)
+    if xli.steam:
         print("You need to restart steam to remove XIVLauncher from the compatibility tools list.")
     else:
-        if os.path.isfile(os.path.join(rbli.home, ".local", "bin", "xivlauncher-local")):
-            os.unlink(os.path.join(rbli.home, ".local", "bin", "xivlauncher-local"))
-        if os.path.isfile(os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop")):
-            os.unlink(os.path.join(rbli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
-        print(f"Local version of {rbli.title} has been uninstalled.")
+        if os.path.isfile(os.path.join(xli.home, ".local", "bin", "xivlauncher-local")):
+            os.unlink(os.path.join(xli.home, ".local", "bin", "xivlauncher-local"))
+        if os.path.isfile(os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop")):
+            os.unlink(os.path.join(xli.xdg_data, "applications", "XIVLauncher-Local.desktop"))
+        print(f"Local version of {xli.title} has been uninstalled.")
 
 # Main program logic starts here
 install_type, install_dir = get_install_type()
 action = get_action()
-rbli = rb_installer(install_type, install_dir, action)
+xli = xlcore_local_installer(args.RB, install_type, install_dir, action)
 if args.clear:
-    clear_directory(rbli.cache_dir)
-    os.rmdir(rbli.cache_dir)
-    print(f"{rbli.cache_dir} cleared.")
+    clear_directory(xli.cache_dir)
+    os.rmdir(xli.cache_dir)
+    print(f"{xli.cache_dir} cleared.")
 elif args.uninstall:
-    uninstall_xlcore(rbli)
+    uninstall_xlcore(xli)
 else:
-    install_xlcore(rbli)
+    install_xlcore(xli)
     

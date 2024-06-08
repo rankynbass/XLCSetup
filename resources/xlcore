@@ -5,7 +5,7 @@ tooldir="$(realpath "$(dirname "$0")")"
 
 # Prevent double launch
 if [ "$1" = "run" ]; then
-    "$tooldir/rbli" --update
+    "$tooldir/xli" --update
     exit 0
 fi
 
