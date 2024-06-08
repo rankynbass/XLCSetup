@@ -79,7 +79,7 @@ class rb_local_installer:
         self.release = "RB-Patched" if use_rb else "Official"
         self.xlcore_url = f"https://github.com/{self.repo}/XIVLauncher.Core/releases/latest/download/XIVLauncher.Core.tar.gz"
         self.aria2_url = "https://github.com/rankynbass/aria2-static-build/releases/latest/download/aria2-static.tar.gz"
-        self.cache_dir = os.path.join(self.xdg_cache, "XIVLocal-Installer")
+        self.cache_dir = os.path.join(self.xdg_cache, "RBLocalInstaller")
         self.cached_vfile = os.path.join(self.cache_dir, f"version-{self.repo}")
         self.cached_version, self.cached_release = self.get_version_release(self.cached_vfile)
         if use_rb:
@@ -330,8 +330,11 @@ action = get_action()
 rbli = rb_local_installer(args.RB, install_type, install_dir, action)
 if args.clear:
     clear_directory(rbli.cache_dir)
-    os.rmdir(rbli.cache_dir)
-    print(f"{rbli.cache_dir} cleared.")
+    if not os.path.isdir(rbli.cache_dir):
+        print(f"{rbli.cache_dir} does not exist. Nothing to clear.")
+    else:
+        os.rmdir(rbli.cache_dir)
+        print(f"{rbli.cache_dir} cleared.")
 elif args.uninstall:
     uninstall_xlcore(rbli)
 else:
