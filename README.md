@@ -1,4 +1,5 @@
-# XIVLauncher.Core local installer
+# RBLocalInstaller - A local installer for XIVLauncher.Core and XIVLauncher-RB
+
 A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a native (non-flatpak) install of steam, lutris, or even just wine, the dependencies should be met.
 
 ## How to use
