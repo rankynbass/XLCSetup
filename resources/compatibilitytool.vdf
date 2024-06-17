@@ -2,10 +2,10 @@
 {
   "compat_tools"
   {
-	"XIVLauncher-RB" // Internal name of this tool
+	"XIVLauncher.Core" // Internal name of this tool
 	{
 	  "install_path" "."
-	  "display_name" "XIVLauncher-RB"
+	  "display_name" "XIVLauncher.Core as a Compatibility Tool"
 
 	  "from_oslist"  "windows"
 	  "to_oslist"    "linux"

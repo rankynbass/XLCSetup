@@ -243,7 +243,6 @@ def download_tarballs(rbli: rb_local_installer) -> bool:
 
 def install_xlcore(rbli: rb_local_installer):
     # Determine if we should install xlcore
-    print(f"Checking for installed version of {rbli.title}...")
     do_install = args.force
     force_msg = "" if rbli.update else " Use --force to install anyway."
     if args.force:
