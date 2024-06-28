@@ -3,16 +3,14 @@
 # Working directory is actually the steam install location, so we need to find the path of this script
 tooldir="$(realpath "$(dirname "$0")")"
 
-# Prevent double launch
+# Prevent double launch. Run the update check here.
 if [ "$1" = "run" ]; then
-    "$tooldir/rbli" --update
+    "$tooldir/xlcs" --update
     exit 0
 fi
 
 xlcoreDir="$HOME/.xlcore"
-logDir="$xlcoreDir/logs"
 mkdir -p "$xlcoreDir"
-mkdir -p "$logDir"
 
 # If aria2c isn't found, add our local copy to the $PATH
 count=$(find /usr -type f -executable -name "aria2c" 2>/dev/null | wc -l)
@@ -33,6 +31,5 @@ if [ "$SteamDeck" = "1" ] && [ "$SteamGamepadUI" != "1" ]; then
     unset SteamDeck
 fi
 
-export OPENSSL_CONF="$tooldir/openssl_fix.cnf"
 export XL_SCT=1
-"$tooldir/XIVLauncher/XIVLauncher.Core" $@ >> $logDir/steamtool_console.log 2>&1
+"$tooldir/XIVLauncher/XIVLauncher.Core"

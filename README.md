@@ -1,14 +1,14 @@
-# RBLocalInstaller - A local installer for XIVLauncher.Core and XIVLauncher-RB
+# XLCore Setup - A local installer for XIVLauncher.Core and XIVLauncher-RB
 
 A quick and dirty script to install (or uninstall) XIVLauncher locally without flatpak. Assuming you have a native (non-flatpak) install of steam, lutris, or even just wine, the dependencies should be met.
 
 ## How to use
-Download XIVLocal-Installer.tar.gz from the latest release and extract. Alternately, `git clone` the repo.
+Download XLCSetup.tar.gz from the latest release and extract. Alternately, `git clone` the repo.
 
 Then run the install script
 ```
-$ ./rbli -h                     
-usage: rbli [-h] [-l | --custom PATH | -s | -f] [-u | --RB] [--info] [--force] [-d] [--clear]
+$ ./xlcsetup --help
+usage: xlcsetup [-h] [-l | --custom PATH | -s | -f] [-u | --RB] [--info] [--force] [--tag TAG] [-d] [--clear]
 
 Local install tool for XIVLauncher.Core.
 
@@ -16,6 +16,7 @@ options:
   -h, --help       show this help message and exit
   --info           Show information on the install target without doing anything.
   --force          Force the install even if the current version is up-to-date.
+  --tag TAG        Install the latest version as if it were TAG. Useful if the repo version file is out of date.
   -d, --download   Always download the source, even if it's already cached.
   --clear          Clear the cached files and exit.
 
