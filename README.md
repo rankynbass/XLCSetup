@@ -41,7 +41,6 @@ Install targets:
 6. Create a .desktop file that points to the launcher, and try to refresh your desktop menu.
 
 ### Using --steam or --steamflatpak
-**Note: I recommend using --RB with these options for the moment. It has a few extra bits to work around a few bugs. The official release *will* still work, however.**
 1. Download and extract aria2-static and the latest XIVLauncher as above.
 2. Copy the necessary files from the `resources` folder to the steam compatibility tool directory
 3. After restarting steam, you can right-click on Final Fantasy XIV, go to settings, Compatibility, and select "XIVLauncher as Compatibility Tool".
