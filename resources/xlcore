@@ -5,7 +5,7 @@ tooldir="$(realpath "$(dirname "$0")")"
 
 # Prevent double launch. Run the update check here.
 if [ "$1" = "run" ]; then
-    "$tooldir/xlcs" --update
+    "$tooldir/xlcsetup" --update
     exit 0
 fi
 

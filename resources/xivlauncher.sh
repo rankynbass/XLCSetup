@@ -1,4 +1,4 @@
 #!/bin/bash
 installdir=
-"$installdir/xlcs" --update
+"$installdir/xlcsetup" --update
 "$installdir/XIVLauncher/XIVLauncher.Core" $@
